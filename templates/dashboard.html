@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* --- Body & Typography --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px 40px;
+            color: #333;
+        }
+        h2, h3 {
+            color: #1f2937;
+        }
+        h2 {
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        h3 {
+            margin-top: 40px;
+            margin-bottom: 15px;
+        }
+
+        /* --- Logout Button --- */
+        .logout-btn {
+            float: right;
+            background-color: #f59e0b; /* Amber */
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .logout-btn:hover {
+            background-color: #b45309;
+            transform: translateY(-2px);
+        }
+
+        /* --- Search Bar --- */
+        .search-bar {
+            margin: 20px 0;
+        }
+        .search-bar input {
+            width: 300px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        /* --- Properties Grid --- */
+        .properties {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* --- Property Card --- */
+        .property-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .property-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+        .property-card h4 {
+            margin: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- Buttons --- */
+        .property-card button {
+            margin: 10px;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .add-btn {
+            background-color: #3b82f6; /* Blue */
+            color: #fff;
+        }
+        .add-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+        .remove-btn {
+            background-color: #ef4444; /* Red */
+            color: #fff;
+        }
+        .remove-btn:hover {
+            background-color: #b91c1c;
+            transform: translateY(-2px);
+        }
+
+        /* --- Toast Notification --- */
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #3b82f6;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* --- Modal --- */
+        #propertyModal {
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.5);
+            justify-content:center;
+            align-items:center;
+            z-index:10000;
+        }
+        #propertyModal .modal-content {
+            background:#fff;
+            padding:20px;
+            border-radius:10px;
+            max-width:500px;
+            width:90%;
+            position:relative;
+        }
+        #propertyModal .modal-content img {
+            width:100%;
+            border-radius:8px;
+            margin-bottom:15px;
+        }
+        #propertyModal .close-btn {
+            position:absolute;
+            top:10px;
+            right:15px;
+            cursor:pointer;
+            font-size:20px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 500px) {
+            .property-card img {
+                height: 150px;
+            }
+            .logout-btn {
+                float: none;
+                display: block;
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            .search-bar input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Welcome, {{ user.name }} ({{ user.role }})</h2>
+    <form action="/logout" method="POST" style="display:inline;">
+        <button type="submit" class="logout-btn">Logout</button>
+    </form>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search properties...">
+    </div>
+
+    <div id="toast"></div>
+
+    <h3>Available Properties</h3>
+    <div class="properties" id="availableProperties">
+        {% for prop in properties %}
+        <div class="property-card">
+            <img src="{{ prop.image }}" alt="{{ prop.name }}" />
+            <h4>{{ prop.name }}</h4>
+
+            <!-- Add Button -->
+            <button class="add-btn"
+                data-id="{{ prop.id }}"
+                data-name="{{ prop.name }}"
+                data-image="{{ prop.image }}">
+                Add to Favourites
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h3>My Favourites</h3>
+    <div class="properties" id="myFavourites">
+        {% for fav in favourites %}
+        <div class="property-card">
+            <img src="{{ fav.property_image }}" alt="{{ fav.property_name }}" />
+            <h4>{{ fav.property_name }}</h4>
+
+            <!-- Remove Button -->
+            <button class="remove-btn"
+                data-id="{{ fav.property_id }}"
+                data-name="{{ fav.property_name }}"
+                data-image="{{ fav.property_image }}">
+                Remove
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Property Modal -->
+    <div id="propertyModal">
+        <div class="modal-content">
+            <span class="close-btn" id="modalClose">&times;</span>
+            <img id="modalImg" src="">
+            <h3 id="modalName"></h3>
+            <p id="modalDetails"></p>
+        </div>
+    </div>
+
+    <script>
+        
+        // Toast
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        // Fetch requests
+        async function sendFavouriteRequest(url, property) {
+            console.log("Sending:", property);
+            const res = await fetch(url, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(property)
+            });
+            const data = await res.json();
+            console.log("Response:", data);
+            showToast(data.message || data.error);
+            setTimeout(() => location.reload(), 2100);
+        }
+
+        // Add / Remove buttons
+        document.querySelectorAll(".add-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const property = {
+                    id: parseInt(btn.dataset.id),
+                    name: btn.dataset.name,
+                    image: btn.dataset.image
+                };
+                sendFavouriteRequest("/favourites/add", property);
+            });
+        });
+
+        document.querySelectorAll(".remove-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const property = {
+                    id: parseInt(btn.dataset.id),
+                    name: btn.dataset.name,
+                    image: btn.dataset.image
+                };
+                sendFavouriteRequest("/favourites/remove", property);
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const availableCards = document.querySelectorAll('#availableProperties .property-card');
+        searchInput.addEventListener('input', () => {
+            const filter = searchInput.value.toLowerCase();
+            availableCards.forEach(card => {
+                const name = card.querySelector('h4').innerText.toLowerCase();
+                card.style.display = name.includes(filter) ? '' : 'none';
+            });
+        });
+
+        // Property Modal
+const modal = document.getElementById('propertyModal');
+const modalImg = document.getElementById('modalImg');
+const modalName = document.getElementById('modalName');
+const modalDetails = document.getElementById('modalDetails');
+const modalClose = document.getElementById('modalClose');
+
+// Convert Flask properties to JS array
+const propertiesData = JSON.parse('{{ properties | tojson | safe }}');
+
+availableCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+        if(e.target.tagName === 'BUTTON') return; // Ignore Add button
+        const propId = parseInt(card.querySelector('.add-btn').dataset.id);
+        const property = propertiesData.find(p => p.id === propId);
+
+        modalImg.src = card.querySelector('img').src;
+        modalName.innerText = card.querySelector('h4').innerText;
+
+        if(property) {
+            modalDetails.innerHTML = `
+                <strong>Description:</strong> ${property.description}<br>
+                <strong>Price:</strong> ${property.price}<br>
+                <strong>Location:</strong> ${property.location}
+            `;
+        }
+
+        modal.style.display = 'flex';
+    });
+});
+
+modalClose.addEventListener('click', () => { modal.style.display = 'none'; });
+// Close modal on outside click
+modal.addEventListener('click', (e) => { if(e.target === modal) modal.style.display = 'none'; });
+    </script>
+</body>
+</html>
